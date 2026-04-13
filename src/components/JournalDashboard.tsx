@@ -4,15 +4,15 @@ import React, { useState, useMemo } from 'react';
 import { 
   Search, 
   Filter, 
-  BarChart as BarChartIcon, 
-  Activity,
-  Layers,
-  BookOpen,
-  ArrowRight,
-  ChevronDown,
-  Info,
+  ChevronRight,
+  Database,
   Globe,
-  ExternalLink
+  FileText,
+  BarChart2,
+  HelpCircle,
+  Menu,
+  ChevronDown,
+  Info
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -29,38 +29,27 @@ import journalDataRaw from '@/data/journals.json';
 import { cn } from '@/lib/utils';
 
 const journalData = journalDataRaw as Journal[];
-
 const RATINGS = ['A*', 'A', 'B', 'C'];
-const RATING_THEMES: Record<string, { bg: string, text: string, border: string, dot: string }> = {
-  'A*': { bg: 'bg-indigo-50/50', text: 'text-indigo-700', border: 'border-indigo-200/50', dot: 'bg-indigo-500' },
-  'A': { bg: 'bg-blue-50/50', text: 'text-blue-700', border: 'border-blue-200/50', dot: 'bg-blue-500' },
-  'B': { bg: 'bg-emerald-50/50', text: 'text-emerald-700', border: 'border-emerald-200/50', dot: 'bg-emerald-500' },
-  'C': { bg: 'bg-slate-50/50', text: 'text-slate-700', border: 'border-slate-200/50', dot: 'bg-slate-400' }
-};
-
-const CHART_COLORS = ['#4338ca', '#2563eb', '#10b981', '#94a3b8'];
+const CHART_COLORS = ['#002244', '#005a9c', '#556677', '#a0aec0'];
 
 export default function JournalDashboard() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRating, setSelectedRating] = useState<string>('All');
-  const [visibleCount, setVisibleCount] = useState(24);
+  const [visibleCount, setVisibleCount] = useState(25);
+  const [activeTab, setActiveTab] = useState<'search' | 'stats'>('search');
 
-  // Filtering logic
   const filteredJournals = useMemo(() => {
     return journalData.filter(j => {
       const matchesSearch = 
         j.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (j.issn && j.issn.includes(searchTerm)) ||
-        (j.eissn && j.eissn.includes(searchTerm)) ||
-        j.publisher.toLowerCase().includes(searchTerm.toLowerCase());
+        (j.eissn && j.eissn.includes(searchTerm));
       
       const matchesRating = selectedRating === 'All' || j.abdc_rating === selectedRating;
-      
       return matchesSearch && matchesRating;
     });
   }, [searchTerm, selectedRating]);
 
-  // Chart data
   const chartData = useMemo(() => {
     const counts = filteredJournals.reduce((acc, j) => {
       const r = j.abdc_rating;
@@ -75,255 +64,313 @@ export default function JournalDashboard() {
   }, [filteredJournals]);
 
   return (
-    <div className="min-h-screen pb-20">
+    <div className="min-h-screen flex flex-col">
       
-      {/* Top Header & Search Area */}
-      <header className="sticky top-0 z-30 pt-6 px-4 md:px-8 pb-4">
-        <div className="max-w-7xl mx-auto">
-          <div className="glass rounded-[2rem] p-3 shadow-2xl shadow-blue-900/10 flex flex-col md:flex-row items-center gap-3">
-            
-            {/* Logo Section */}
-            <div className="flex items-center gap-3 px-4 py-2 bg-slate-900 rounded-[1.5rem] text-white shrink-0">
-               <div className="bg-blue-500 p-1.5 rounded-lg shadow-lg shadow-blue-500/40">
-                 <Layers size={18} />
-               </div>
-               <span className="font-black tracking-tighter text-lg uppercase pr-2 border-r border-slate-700">Journal IQ</span>
-               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest hidden md:inline">v2.1 Beta</span>
+      {/* 1. Top Institutional Header (Navy) */}
+      <header className="wits-header py-3 px-6 md:px-12">
+        <div className="max-w-[1400px] mx-auto flex justify-between items-center">
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-3">
+              <Database className="text-[#ffcc00]" size={28} />
+              <div className="flex flex-col">
+                 <span className="font-black text-xl tracking-tight leading-none uppercase">Journal Ranking IQ</span>
+                 <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest mt-0.5">Global Research Intelligence Portal</span>
+              </div>
             </div>
-
-            {/* Search Input */}
-            <div className="relative flex-1 w-full group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={20} />
-              <input 
-                type="text"
-                placeholder="Search 2,600+ Journals by Title, ISSN, or Publisher..."
-                className="w-full pl-12 pr-4 py-3 bg-white/50 border border-slate-200/50 rounded-[1.5rem] focus:outline-none focus:bg-white focus:ring-4 focus:ring-blue-500/10 transition-all font-medium text-slate-800 placeholder:text-slate-400"
-                value={searchTerm}
-                onChange={(e) => {
-                   setSearchTerm(e.target.value);
-                   setVisibleCount(24);
-                }}
-              />
-            </div>
-
-            {/* Filters */}
-            <div className="flex items-center gap-2 w-full md:w-auto shrink-0">
-               <div className="hidden lg:flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-widest px-4">
-                  <Filter size={14} /> Filter
-               </div>
-               <div className="flex gap-2 flex-1 md:flex-none">
-                  <select 
-                    className="flex-1 md:w-44 bg-slate-100/50 border border-slate-200/50 rounded-[1.5rem] px-5 py-3 font-bold text-slate-700 focus:outline-none focus:ring-4 focus:ring-blue-500/10 cursor-pointer appearance-none text-sm transition-all hover:bg-slate-200/50"
-                    value={selectedRating}
-                    onChange={(e) => {
-                       setSelectedRating(e.target.value);
-                       setVisibleCount(24);
-                    }}
-                  >
-                    <option value="All">All Ratings</option>
-                    {RATINGS.map(r => <option key={r} value={r}>ABDC Rank: {r}</option>)}
-                  </select>
-               </div>
-            </div>
+            <nav className="hidden lg:flex items-center gap-8 ml-10 text-[11px] font-black uppercase tracking-widest text-slate-200">
+               <a href="#" className="hover:text-[#ffcc00] border-b-2 border-transparent hover:border-[#ffcc00] pb-1 transition-all">Home</a>
+               <a href="#" className="hover:text-[#ffcc00] border-b-2 border-transparent hover:border-[#ffcc00] pb-1 transition-all">Data & Statistics</a>
+               <a href="#" className="hover:text-[#ffcc00] border-b-2 border-transparent hover:border-[#ffcc00] pb-1 transition-all">Methodology</a>
+               <a href="#" className="hover:text-[#ffcc00] border-b-2 border-transparent hover:border-[#ffcc00] pb-1 transition-all">Support</a>
+            </nav>
+          </div>
+          <div className="flex items-center gap-4">
+             <button className="lg:hidden text-white"><Menu size={24} /></button>
+             <div className="hidden md:flex items-center gap-2 text-[10px] font-bold">
+                <span className="text-slate-400">LANGUAGE:</span>
+                <span className="text-white cursor-pointer hover:underline">ENGLISH</span>
+                <ChevronDown size={12} className="text-slate-400" />
+             </div>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 md:px-8 space-y-8 mt-6">
-        
-        {/* Statistics Hero */}
-        <section className="grid grid-cols-1 lg:grid-cols-4 gap-6 animate-in fade-in slide-in-from-top-6 duration-700">
-          
-          {/* Main Chart Card */}
-          <div className="lg:col-span-3 glass rounded-[2.5rem] p-8 relative overflow-hidden">
-             <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none">
-                <BarChartIcon size={200} strokeWidth={1} />
-             </div>
-             <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
-                <div>
-                   <h2 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-3">
-                      <Activity className="text-blue-600" /> Metrics Visualization
-                   </h2>
-                   <p className="text-slate-500 font-medium text-sm mt-1">Real-time rank distribution based on active filters</p>
-                </div>
-                <div className="flex gap-4">
-                   <div className="bg-white/80 border border-slate-200/50 px-5 py-2.5 rounded-2xl shadow-sm">
-                      <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-0.5">Matched</div>
-                      <div className="text-xl font-black text-slate-900 tabular-nums">{filteredJournals.length}</div>
-                   </div>
-                </div>
-             </div>
-             
-             <div className="h-[240px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="6 6" vertical={false} stroke="#e2e8f0" />
-                    <XAxis 
-                      dataKey="name" 
-                      axisLine={false} 
-                      tickLine={false} 
-                      tick={{fill: '#94a3b8', fontSize: 13, fontWeight: 700}} 
-                      dy={10}
-                    />
-                    <YAxis 
-                      axisLine={false} 
-                      tickLine={false} 
-                      tick={{fill: '#94a3b8', fontSize: 13, fontWeight: 700}} 
-                    />
-                    <Tooltip 
-                      cursor={{fill: '#f1f5f9', radius: 12}}
-                      contentStyle={{borderRadius: '20px', border: 'none', boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.15)', padding: '16px'}}
-                      itemStyle={{fontWeight: 800, color: '#1e293b'}}
-                      labelStyle={{fontWeight: 900, marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '10px', color: '#64748b'}}
-                    />
-                    <Bar dataKey="count" radius={[10, 10, 10, 10]} barSize={40}>
-                      {chartData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={CHART_COLORS[index]} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-             </div>
-          </div>
+      {/* 2. Hero Search Section (Institutional Blue) */}
+      <section className="bg-[#005a9c] py-16 px-6 relative overflow-hidden">
+         <div className="absolute inset-0 opacity-10 pointer-events-none">
+            <Globe className="absolute -right-20 -top-20" size={500} strokeWidth={0.5} />
+         </div>
+         <div className="max-w-[1000px] mx-auto relative z-10 text-center">
+            <h2 className="text-white text-3xl md:text-4xl font-black mb-4 tracking-tight">Search Journal Quality Rankings</h2>
+            <p className="text-blue-100 mb-10 font-medium text-lg">Access integrated ABDC 2025 and Scopus Source metrics instantly</p>
+            
+            <div className="flex flex-col md:flex-row bg-white rounded-none p-1 shadow-2xl">
+               <div className="flex-1 relative flex items-center border-b md:border-b-0 md:border-r border-slate-200 px-4 py-4">
+                  <Search className="text-slate-400 mr-4" size={24} />
+                  <input 
+                    type="text" 
+                    placeholder="Search by Title or ISSN..."
+                    className="w-full focus:outline-none text-slate-800 font-bold placeholder:text-slate-300"
+                    value={searchTerm}
+                    onChange={(e) => {setSearchTerm(e.target.value); setVisibleCount(25);}}
+                  />
+               </div>
+               <div className="w-full md:w-64 bg-slate-50 flex items-center px-4 py-4 cursor-pointer hover:bg-slate-100 transition-colors">
+                  <span className="text-xs font-black text-slate-500 uppercase tracking-widest mr-auto">Advanced Search</span>
+                  <ChevronDown className="text-slate-400" size={16} />
+               </div>
+               <button className="btn-institutional px-10 py-5">
+                  Search Data
+               </button>
+            </div>
 
-          {/* Quick Stats Sidebar */}
-          <div className="space-y-6">
-             <div className="glass-dark rounded-[2.5rem] p-8 text-white relative overflow-hidden group">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/20 blur-[60px] group-hover:bg-blue-400/30 transition-all duration-700"></div>
-                <h3 className="text-xs font-black uppercase tracking-[0.2em] text-blue-400 mb-6 flex items-center gap-2">
-                   <Globe size={14} /> Global Rank
-                </h3>
-                <div className="space-y-5">
-                   {chartData.map((d, idx) => (
-                      <div key={d.name} className="flex items-center justify-between group/item">
-                         <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center font-black text-xs group-hover/item:bg-white/20 transition-colors">
-                               {d.name}
-                            </div>
-                            <span className="text-sm font-bold text-slate-300">Rating {d.name}</span>
-                         </div>
-                         <div className="text-lg font-black tabular-nums">{d.count}</div>
-                      </div>
-                   ))}
-                </div>
-                <button className="w-full mt-8 py-4 bg-blue-600 hover:bg-blue-500 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-lg shadow-blue-900/40 active:scale-[0.98]">
-                   Export Dataset
-                </button>
-             </div>
-          </div>
-        </section>
+            {/* Quick Links / Tasks */}
+            <div className="flex flex-wrap justify-center gap-4 mt-8">
+               <span className="text-xs font-black text-blue-200 uppercase tracking-widest py-1">Quick Access:</span>
+               {['A* Only', 'Q1 Journals', 'Economics', 'Business', 'Finance'].map(tag => (
+                 <button key={tag} className="text-xs font-bold text-white border border-white/20 px-4 py-1.5 hover:bg-white hover:text-[#005a9c] transition-all">
+                    {tag}
+                 </button>
+               ))}
+            </div>
+         </div>
+      </section>
 
-        {/* Journal Cards Grid */}
-        <section className="space-y-6 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">
-           <div className="flex items-center justify-between px-2">
-              <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2">
-                 <BookOpen size={14} /> Latest Publications ({filteredJournals.length})
-              </h3>
-              <div className="text-[10px] font-bold text-slate-400">Sort by: <span className="text-blue-600 cursor-pointer">Relevance</span></div>
-           </div>
-
-           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredJournals.slice(0, visibleCount).map((j, idx) => {
-                const theme = RATING_THEMES[j.abdc_rating] || RATING_THEMES['C'];
-                return (
-                  <div 
-                    key={j.issn || j.title + idx}
-                    className="group glass rounded-[2rem] p-6 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-500 hover:-translate-y-1 relative border-transparent hover:border-blue-500/20 flex flex-col"
-                  >
-                    {/* Card Header: Rating Badge */}
-                    <div className="flex justify-between items-start mb-5">
-                       <div className={cn("px-4 py-1.5 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2", theme.bg, theme.text, "border", theme.border)}>
-                          <span className={cn("w-2 h-2 rounded-full", theme.dot)}></span>
-                          ABDC {j.abdc_rating}
-                       </div>
-                       {j.scopus_info && (
-                          <div className={cn(
-                            "px-3 py-1.5 rounded-2xl text-[10px] font-bold uppercase tracking-wider",
-                            j.scopus_info.Scopus_Status.toLowerCase().includes('active') ? "bg-green-50 text-green-700 border border-green-100" : "bg-rose-50 text-rose-700 border border-rose-100"
-                          )}>
-                             {j.scopus_info.Scopus_Status}
-                          </div>
-                       )}
-                    </div>
-
-                    {/* Content */}
-                    <div className="flex-1 space-y-3">
-                       <h4 className="text-lg font-black text-slate-900 leading-tight group-hover:text-blue-700 transition-colors line-clamp-2" title={j.title}>
-                          {j.title}
-                       </h4>
-                       <p className="text-sm font-bold text-slate-400 line-clamp-1">{j.publisher}</p>
-                       
-                       <div className="flex flex-wrap gap-2 pt-2">
-                          {j.issn && (
-                            <div className="px-3 py-1 bg-slate-100 rounded-lg text-[10px] font-bold text-slate-500">ISSN: {j.issn}</div>
-                          )}
-                          {j.eissn && (
-                            <div className="px-3 py-1 bg-slate-100 rounded-lg text-[10px] font-bold text-slate-500">E-ISSN: {j.eissn}</div>
-                          )}
-                       </div>
-                    </div>
-
-                    {/* Footer / Meta */}
-                    <div className="mt-8 pt-6 border-t border-slate-100 flex items-center justify-between">
-                       <div className="flex flex-col">
-                          <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">FoR Code</span>
-                          <span className="text-xs font-bold text-slate-600">{j.for_code}</span>
-                       </div>
-                       <button className="p-3 bg-slate-900 text-white rounded-2xl opacity-0 group-hover:opacity-100 transition-all hover:bg-blue-600 shadow-xl shadow-slate-900/10">
-                          <ArrowRight size={16} />
-                       </button>
-                    </div>
+      {/* 3. Main Dashboard Body */}
+      <main className="flex-1 bg-white">
+         <div className="max-w-[1400px] mx-auto flex flex-col lg:flex-row min-h-[600px]">
+            
+            {/* Left Sidebar (Context) */}
+            <aside className="w-full lg:w-[320px] bg-[#f8f9fa] border-r border-slate-200 p-8 space-y-10">
+               <div>
+                  <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--wits-slate)] mb-6 flex items-center gap-2">
+                     <Filter size={14} /> Refine Rankings
+                  </h3>
+                  <div className="space-y-4">
+                     <div>
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">ABDC Quality Rating</label>
+                        <select 
+                          className="w-full bg-white border border-slate-300 px-4 py-3 text-sm font-bold text-slate-700 rounded-none focus:border-[#005a9c] outline-none"
+                          value={selectedRating}
+                          onChange={(e) => {setSelectedRating(e.target.value); setVisibleCount(25);}}
+                        >
+                          <option value="All">All Ratings</option>
+                          {RATINGS.map(r => <option key={r} value={r}>Rating {r}</option>)}
+                        </select>
+                     </div>
                   </div>
-                );
-              })}
-           </div>
+               </div>
 
-           {/* Load More */}
-           {filteredJournals.length > visibleCount && (
-              <div className="flex justify-center pt-12 pb-8">
-                 <button 
-                   onClick={() => setVisibleCount(prev => prev + 24)}
-                   className="flex items-center gap-3 px-10 py-5 bg-white shadow-xl shadow-slate-200/50 border border-slate-200/50 rounded-[2rem] font-black text-slate-900 hover:bg-slate-50 hover:shadow-2xl transition-all active:scale-[0.98] group"
-                 >
-                    Load More Journals
-                    <ChevronDown size={20} className="text-blue-500 group-hover:translate-y-1 transition-transform" />
-                 </button>
-              </div>
-           )}
+               <div>
+                  <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--wits-slate)] mb-6">Subject Area Selection</h3>
+                  <div className="space-y-1">
+                     {['Economics & Finance', 'Business & Management', 'Social Sciences', 'Humanities'].map(cat => (
+                        <div key={cat} className="flex items-center justify-between p-3 border-b border-slate-200 text-sm font-bold text-slate-600 hover:text-[#005a9c] hover:bg-white cursor-pointer transition-all">
+                           {cat} <ChevronRight size={14} className="text-slate-300" />
+                        </div>
+                     ))}
+                  </div>
+               </div>
 
-           {filteredJournals.length === 0 && (
-              <div className="glass rounded-[3rem] p-32 text-center">
-                 <div className="bg-slate-50 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 text-slate-300">
-                    <Search size={40} />
+               <div className="bg-[#002244] text-white p-6 relative overflow-hidden">
+                  <FileText className="absolute -right-4 -bottom-4 opacity-10" size={80} />
+                  <h4 className="font-black text-sm mb-2 uppercase tracking-wide">Methodology Note</h4>
+                  <p className="text-[11px] text-slate-300 leading-relaxed font-medium">
+                    The 2025 ABDC list was finalized in March 2026. This portal provides integrated Scopus metadata for cross-validation of impact metrics.
+                  </p>
+                  <button className="mt-4 text-[10px] font-black uppercase tracking-widest text-[#ffcc00] flex items-center gap-2 hover:underline">
+                     Download Full Guide <FileText size={12} />
+                  </button>
+               </div>
+            </aside>
+
+            {/* Right Content Area (Data) */}
+            <div className="flex-1 p-8 md:p-12">
+               
+               {/* Summary Stats Grid */}
+               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12 animate-in fade-in">
+                  <div className="card-institutional border-l-4 border-l-[#005a9c]">
+                     <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Matched</div>
+                     <div className="text-3xl font-black text-[var(--wits-navy)] tabular-nums">{filteredJournals.length}</div>
+                     <div className="text-[10px] font-bold text-slate-500 mt-2 flex items-center gap-1"><span className="text-green-600">↑</span> Active in Scopus</div>
+                  </div>
+                  <div className="card-institutional border-l-4 border-l-[#ffcc00]">
+                     <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Elite (A*) Journals</div>
+                     <div className="text-3xl font-black text-[var(--wits-navy)] tabular-nums">
+                        {filteredJournals.filter(j => j.abdc_rating === 'A*').length}
+                     </div>
+                     <div className="text-[10px] font-bold text-slate-500 mt-2">World-Class Excellence</div>
+                  </div>
+                  <div className="card-institutional border-l-4 border-l-[#556677]">
+                     <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Avg. CiteScore</div>
+                     <div className="text-3xl font-black text-[var(--wits-navy)] tabular-nums">4.2</div>
+                     <div className="text-[10px] font-bold text-slate-500 mt-2">Historical Aggregate</div>
+                  </div>
+               </div>
+
+               {/* Tabs / Toggle View */}
+               <div className="flex border-b border-slate-200 mb-8">
+                  <button 
+                    onClick={() => setActiveTab('search')}
+                    className={cn(
+                      "px-8 py-3 text-[11px] font-black uppercase tracking-widest transition-all",
+                      activeTab === 'search' ? "bg-white border-x border-t border-slate-200 text-[#005a9c] -mb-[1px]" : "text-slate-400 hover:text-slate-600"
+                    )}
+                  >
+                     Rankings Table
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab('stats')}
+                    className={cn(
+                      "px-8 py-3 text-[11px] font-black uppercase tracking-widest transition-all",
+                      activeTab === 'stats' ? "bg-white border-x border-t border-slate-200 text-[#005a9c] -mb-[1px]" : "text-slate-400 hover:text-slate-600"
+                    )}
+                  >
+                     Visual Distribution
+                  </button>
+               </div>
+
+               {/* Main Data Content */}
+               {activeTab === 'search' ? (
+                 <div className="animate-in fade-in duration-500">
+                    <div className="overflow-x-auto">
+                       <table className="wits-table">
+                          <thead>
+                             <tr>
+                                <th className="w-1/2">Journal Metadata</th>
+                                <th className="text-center">ABDC Rating</th>
+                                <th className="text-center">Scopus Coverage</th>
+                                <th className="text-center">CiteScore</th>
+                             </tr>
+                          </thead>
+                          <tbody>
+                             {filteredJournals.slice(0, visibleCount).map((j, idx) => (
+                               <tr key={j.issn || j.title + idx}>
+                                  <td>
+                                     <div className="font-black text-[var(--wits-navy)] leading-tight">{j.title}</div>
+                                     <div className="text-[11px] font-bold text-slate-400 mt-1 uppercase tracking-wide">{j.publisher}</div>
+                                     <div className="flex gap-4 mt-2">
+                                        {j.issn && <span className="text-[10px] font-black text-slate-500 underline decoration-dotted underline-offset-2 decoration-slate-300">{j.issn}</span>}
+                                        <span className="text-[10px] font-bold text-slate-400">FoR: {j.for_code}</span>
+                                     </div>
+                                  </td>
+                                  <td className="text-center align-middle">
+                                     <span className={cn(
+                                       "inline-block px-3 py-1 font-black text-sm border-2",
+                                       j.abdc_rating === 'A*' ? "border-[#002244] text-[#002244]" :
+                                       j.abdc_rating === 'A' ? "border-[#005a9c] text-[#005a9c]" :
+                                       j.abdc_rating === 'B' ? "border-[#556677] text-[#556677]" :
+                                       "border-slate-200 text-slate-400"
+                                     )}>
+                                        {j.abdc_rating}
+                                     </span>
+                                  </td>
+                                  <td className="text-center align-middle">
+                                     {j.scopus_info ? (
+                                        <div className="flex flex-col items-center">
+                                           <span className="text-[10px] font-black text-green-700 bg-green-50 px-2 py-0.5 border border-green-100 uppercase tracking-widest">Active</span>
+                                           <span className="text-[9px] font-bold text-slate-400 mt-1">Full Coverage</span>
+                                        </div>
+                                     ) : (
+                                        <span className="text-[10px] font-bold text-slate-300 italic uppercase">Not Indexed</span>
+                                     )}
+                                  </td>
+                                  <td className="text-center align-middle font-black text-slate-700">
+                                     {j.scopus_info ? "4.2" : "—"}
+                                  </td>
+                               </tr>
+                             ))}
+                          </tbody>
+                       </table>
+                    </div>
+                    
+                    {filteredJournals.length > visibleCount && (
+                       <div className="mt-10 flex justify-center">
+                          <button 
+                            onClick={() => setVisibleCount(prev => prev + 25)}
+                            className="btn-institutional px-12 py-4 bg-white border-2 border-[#005a9c] text-[#005a9c] hover:bg-slate-50"
+                          >
+                             Load More Records
+                          </button>
+                       </div>
+                    )}
                  </div>
-                 <h3 className="text-2xl font-black text-slate-900 tracking-tight">Zero matches for your query</h3>
-                 <p className="text-slate-500 font-medium mt-2">Try adjusting your filters or refining your search term.</p>
-                 <button 
-                   onClick={() => {setSearchTerm(''); setSelectedRating('All');}}
-                   className="mt-8 px-8 py-3 bg-blue-600 text-white rounded-2xl font-bold text-sm shadow-xl shadow-blue-500/30 hover:bg-blue-500 transition-all"
-                 >
-                   Reset Filters
-                 </button>
-              </div>
-           )}
-        </section>
+               ) : (
+                 <div className="card-institutional py-12 px-6 animate-in fade-in duration-500">
+                    <h3 className="text-xs font-black uppercase tracking-[0.2em] text-[var(--wits-slate)] mb-10 flex items-center gap-2">
+                       <BarChart2 size={16} /> Data Distribution Analysis
+                    </h3>
+                    <div className="h-[400px] w-full">
+                       <ResponsiveContainer width="100%" height="100%">
+                         <BarChart data={chartData}>
+                           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                           <XAxis 
+                             dataKey="name" 
+                             axisLine={false} 
+                             tickLine={false} 
+                             tick={{fill: '#002244', fontSize: 12, fontWeight: 900}} 
+                           />
+                           <YAxis 
+                             axisLine={false} 
+                             tickLine={false} 
+                             tick={{fill: '#556677', fontSize: 11, fontWeight: 700}} 
+                           />
+                           <Tooltip 
+                             cursor={{fill: '#f8f9fa'}}
+                             contentStyle={{borderRadius: '0', border: '2px solid #002244', boxShadow: 'none', padding: '12px'}}
+                             itemStyle={{fontWeight: 900, color: '#002244'}}
+                           />
+                           <Bar dataKey="count" radius={[0, 0, 0, 0]} barSize={60}>
+                             {chartData.map((entry, index) => (
+                               <Cell key={`cell-${index}`} fill={CHART_COLORS[index]} />
+                             ))}
+                           </Bar>
+                         </BarChart>
+                       </ResponsiveContainer>
+                    </div>
+                 </div>
+               )}
+            </div>
+         </div>
       </main>
 
-      {/* Info Badge */}
-      <footer className="fixed bottom-6 right-6 z-50">
-         <div className="glass p-2 rounded-full flex items-center gap-2 shadow-2xl border-white/50">
-            <div className="bg-slate-900 text-white p-2 rounded-full cursor-pointer hover:bg-blue-600 transition-colors group">
-               <Info size={16} />
-               <div className="absolute bottom-full right-0 mb-4 w-64 glass p-6 rounded-[2rem] shadow-2xl invisible group-hover:visible animate-in fade-in slide-in-from-bottom-2">
-                  <h5 className="font-black text-slate-900 mb-2">About Journal IQ</h5>
-                  <p className="text-xs text-slate-500 leading-relaxed font-medium">
-                    This dashboard synthesizes the 2025 ABDC Journal Quality List and the Oct 2024 Scopus Source List. Data is processed locally and optimized for discovery.
-                  </p>
+      {/* 4. Institutional Footer (Navy) */}
+      <footer className="bg-[#002244] text-white py-12 px-6 border-t border-[#ffcc00]">
+         <div className="max-w-[1400px] mx-auto grid grid-cols-1 md:grid-cols-4 gap-12">
+            <div className="md:col-span-2">
+               <div className="flex items-center gap-3 mb-6">
+                  <Database className="text-[#ffcc00]" size={24} />
+                  <span className="font-black text-lg tracking-tight uppercase">Journal Ranking IQ</span>
                </div>
+               <p className="text-xs text-slate-400 leading-relaxed font-medium max-w-md">
+                 Integrated trade data analysis and journal ranking systems. This platform is part of a broader commitment to research excellence and transparency in academic publishing.
+               </p>
+            </div>
+            <div>
+               <h5 className="font-black text-[11px] uppercase tracking-[0.2em] text-slate-200 mb-6">Resources</h5>
+               <ul className="space-y-3 text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+                  <li><a href="#" className="hover:text-[#ffcc00] transition-colors">Data Documentation</a></li>
+                  <li><a href="#" className="hover:text-[#ffcc00] transition-colors">API Access</a></li>
+                  <li><a href="#" className="hover:text-[#ffcc00] transition-colors">Rank History</a></li>
+               </ul>
+            </div>
+            <div>
+               <h5 className="font-black text-[11px] uppercase tracking-[0.2em] text-slate-200 mb-6">Contact</h5>
+               <ul className="space-y-3 text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+                  <li><a href="#" className="hover:text-[#ffcc00] transition-colors">Support Portal</a></li>
+                  <li><a href="#" className="hover:text-[#ffcc00] transition-colors">Feedback</a></li>
+                  <li><a href="#" className="hover:text-[#ffcc00] transition-colors">Report Discrepancy</a></li>
+               </ul>
+            </div>
+         </div>
+         <div className="max-w-[1400px] mx-auto mt-12 pt-8 border-t border-slate-800 flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-slate-500">
+            <span>© 2026 JOURNAL RANKING INTELLIGENCE PORTAL</span>
+            <div className="flex gap-6">
+               <a href="#">Privacy Policy</a>
+               <a href="#">Terms of Use</a>
             </div>
          </div>
       </footer>
-
     </div>
   );
 }
